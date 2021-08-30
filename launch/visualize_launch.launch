@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="KITTI360_RAW_DIR" default="/data/KITTI-360"/>
+    <arg name="UPDATE_FREQUENCY" default="8"/>
+
+    <node pkg="kitti360_visualize" type="kitti360_visualize_node.py" name="kitti360_visualize_node" output="screen">
+        <param name="KITTI360_RAW_DIR" value="$(arg KITTI360_RAW_DIR)"/>
+        <param name="UPDATE_FREQUENCY" value="$(arg UPDATE_FREQUENCY)"/>
+        <param name="Image_PointCloud_Depth" value="3"/>
+    </node>
+    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find kitti360_visualize)/rviz/rviz.rviz"/>
+    <node pkg="kitti360_visualize" type="gui_controller_node.py" name="GUI_controller_node" output="screen" respawn="false" respawn_delay="0">
+
+    </node>
+</launch>

@@ -152,14 +152,16 @@ def get_files(base_dir, index):
             "T_cam2velo":None,
             "cam_to_pose":None,
         },
-        "left_image":"",
-        "right_image":"",
+        "left_image":[],
+        "right_image":[],
+        "lidar": [],
         'key_frames': [],
         "poses":None,
         
     }
     data_pose_dir   = os.path.join(base_dir, 'data_poses')
     data_2d_raw_dir = os.path.join(base_dir, 'data_2d_raw')
+    data_3d_raw_dir = os.path.join(base_dir, 'data_3d_raw')
     calib_dir       = os.path.join(base_dir, 'calibration')    
 
     sequence_name = determine_date_index(data_pose_dir, index)
@@ -185,11 +187,17 @@ def get_files(base_dir, index):
     right_images.sort()
     right_images = [os.path.join(right_dir, right_image) for right_image in right_images]
 
+    pc_dir = os.path.join(data_3d_raw_dir, sequence_name, "velodyne_points", "data")
+    pointclouds = os.listdir(pc_dir)
+    pointclouds.sort()
+    pointclouds = [os.path.join(pc_dir, pc) for pc in pointclouds]
+
     poses_file = os.path.join(data_pose_dir, sequence_name, 'poses.txt') # pose mat can be generated with official matlab toolkits
     key_frames, poses = read_poses_file(poses_file)
 
     output_dict["left_image"] = left_images
     output_dict["right_image"] = right_images
+    output_dict["lidar"] = pointclouds
     output_dict["poses"] = poses
     output_dict["key_frames"] = key_frames
 

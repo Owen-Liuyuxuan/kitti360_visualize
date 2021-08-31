@@ -10,7 +10,7 @@ Overwrite the folder names in the launch file to your data.
 
 - [x] KITTI raw data sequence support. 
 - [x] Stereo RGB cameras.
-- [] Filtered LiDAR, RGB point clouds.
+- [x] LiDAR, RGB point clouds.
 - [x] TF-tree (camera and LiDAR).
 - [x] GUI control & ROS topic control.
 

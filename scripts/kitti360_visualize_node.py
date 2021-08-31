@@ -19,7 +19,7 @@ class Kitti360VisualizeNode:
         self.left_camera_info    = rospy.Publisher("/kitti360/left_camera/camera_info", CameraInfo, queue_size=1, latch=True)
         self.right_camera_info   = rospy.Publisher("/kitti360/right_camera/camera_info", CameraInfo, queue_size=1, latch=True)
         # self.bbox_publish        = rospy.Publisher("/kitti360/bboxes", MarkerArray, queue_size=1, latch=True)
-        # self.lidar_publisher     = rospy.Publisher("/kitti360/lidar", PointCloud2, queue_size=1, latch=True)
+        self.lidar_publisher     = rospy.Publisher("/kitti360/lidar", PointCloud2, queue_size=1, latch=True)
         # self.image_pc_publisher  = rospy.Publisher("/kitti360/left_camera_pc", PointCloud2, queue_size=1, latch=True)
         
         self.KITTI360_raw_dir = rospy.get_param("~KITTI360_RAW_DIR", None)
@@ -90,6 +90,10 @@ class Kitti360VisualizeNode:
         ros_util.publish_image(left_image, self.left_image_publish, self.left_camera_info, P0, "left_camera")
         right_image = cv2.imread(meta_dict["right_image"][frame_idx])
         ros_util.publish_image(right_image, self.right_image_publish, self.right_camera_info, P1, "right_camera")
+
+        point_cloud = np.fromfile(meta_dict["lidar"][frame_idx], dtype=np.float32).reshape(-1, 4)
+        point_cloud = point_cloud[point_cloud[:, 0] > np.abs(point_cloud[:, 1]) * 0.2 ]
+        ros_util.publish_point_cloud(point_cloud, self.lidar_publisher, "lidar")
         
         self.sequence_index += 1
 

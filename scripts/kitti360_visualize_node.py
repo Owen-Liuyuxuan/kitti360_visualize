@@ -67,12 +67,16 @@ class Kitti360VisualizeNode:
             return
         P0 = meta_dict["calib"]["P0"]
         P1 = meta_dict["calib"]["P1"]
+        R0_rect = meta_dict["calib"]["T_rect02cam0"]
+        R1_rect = meta_dict["calib"]["T_rect12cam1"]
         T_cam2velo = meta_dict["calib"]["T_cam2velo"]
         T_image0 = meta_dict["calib"]["cam_to_pose"]["T_image0"]
         T_image1 = meta_dict["calib"]["cam_to_pose"]["T_image1"]
         ros_util.publish_transformation(np.linalg.inv(T_cam2velo), 'left_camera', 'lidar')
         ros_util.publish_transformation(T_image0, 'base_link', 'left_camera')
+        ros_util.publish_transformation(R0_rect,  'left_camera', 'left_rect')
         ros_util.publish_transformation(T_image1, 'base_link', 'right_camera')
+        ros_util.publish_transformation(R1_rect,  'right_camera', 'right_rect')
         ros_util.publish_transformation(meta_dict["poses"][self.sequence_index], "odom", "base_link")
 
         if self.pause: # if paused, all data will freeze

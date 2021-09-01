@@ -79,19 +79,29 @@ def read_P01_from_sequence(file):
     """
     P0 = None
     P1 = None
+    R0 = np.eye(4)
+    R1 = np.eye(4)
     with open(file, 'r') as f:
         for line in f.readlines():
             if line.startswith("P_rect_00"):
                 data = line.strip().split(" ")
                 P0 = np.array([float(x) for x in data[1:13]])
                 P0 = np.reshape(P0, [3, 4])
+            if line.startswith("R_rect_00"):
+                data = line.strip().split(" ")
+                R = np.array([float(x) for x in data[1:10]])
+                R0[0:3, 0:3] = np.reshape(R, [3, 3])
             if line.startswith("P_rect_01"):
                 data = line.strip().split(" ")
                 P1 = np.array([float(x) for x in data[1:13]])
                 P1 = np.reshape(P1, [3, 4])
+            if line.startswith("R_rect_01"):
+                data = line.strip().split(" ")
+                R = np.array([float(x) for x in data[1:10]])
+                R1[0:3, 0:3] = np.reshape(R, [3, 3])
     assert P0 is not None, "can not find P0 in file {}".format(file)
     assert P1 is not None, "can not find P1 in file {}".format(file)
-    return P0, P1
+    return P0, P1, R0, R1
 
 def read_extrinsic_from_sequence(file):
 
@@ -167,22 +177,24 @@ def get_files(base_dir, index):
     sequence_name = determine_date_index(data_pose_dir, index)
 
     cam_calib_file = os.path.join(calib_dir, "perspective.txt")
-    P0, P1 = read_P01_from_sequence(cam_calib_file)
+    P0, P1, R0, R1 = read_P01_from_sequence(cam_calib_file)
     velo_calib_file = os.path.join(calib_dir, "calib_cam_to_velo.txt")
     T_cam2velo = read_T_from_sequence(velo_calib_file)
     cam_extrinsic_file = os.path.join(calib_dir, "calib_cam_to_pose.txt")
     T_cam2pose = read_extrinsic_from_sequence(cam_extrinsic_file)
     output_dict["calib"]["P0"] = P0
     output_dict["calib"]["P1"] = P1
+    output_dict["calib"]["T_rect02cam0"] = R0
+    output_dict["calib"]["T_rect12cam1"] = R1
     output_dict["calib"]["T_cam2velo"] = T_cam2velo
     output_dict["calib"]["cam_to_pose"] = T_cam2pose
 
-    left_dir = os.path.join(data_2d_raw_dir, sequence_name, "image_00", "data_rgb")
+    left_dir = os.path.join(data_2d_raw_dir, sequence_name, "image_00", "data_rect")
     left_images = os.listdir(left_dir)
     left_images.sort()
     left_images = [os.path.join(left_dir, left_image) for left_image in left_images]
 
-    right_dir = os.path.join(data_2d_raw_dir, sequence_name, "image_01", "data_rgb")
+    right_dir = os.path.join(data_2d_raw_dir, sequence_name, "image_01", "data_rect")
     right_images= os.listdir(right_dir)
     right_images.sort()
     right_images = [os.path.join(right_dir, right_image) for right_image in right_images]

@@ -7,12 +7,10 @@ Panels:
         - /Global Options1
         - /Status1
         - /TF1/Frames1
-        - /Camera1
         - /Camera1/Visibility1
-        - /Camera2
         - /Camera2/Visibility1
         - /PointCloud21/Autocompute Value Bounds1
-        - /PointCloud27
+        - /PointCloud26
         - /PointCloud27/Autocompute Value Bounds1
       Splitter Ratio: 0.5
     Tree Height: 286
@@ -296,7 +294,7 @@ Visualization Manager:
       Channel Name: intensity
       Class: rviz/PointCloud2
       Color: 255; 255; 255
-      Color Transformer: RGBF32
+      Color Transformer: Intensity
       Decay Time: 0
       Enabled: true
       Invert Rainbow: false
@@ -311,7 +309,7 @@ Visualization Manager:
       Size (Pixels): 3
       Size (m): 0.009999999776482582
       Style: Flat Squares
-      Topic: /kitti/left_camera_pc
+      Topic: /kitti360/lidar
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true

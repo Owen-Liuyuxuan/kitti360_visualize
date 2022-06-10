@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import numpy as np
 import rospy 
 import cv2
@@ -65,6 +65,13 @@ class Kitti360VisualizeNode:
             rospy.logwarn("meta_dict from kitti360_utils.get_files is None, current_arguments {}"\
                 .format([self.KITTI360_raw_dir, self.index]))
             return
+
+        length = min([len(meta_dict['key_frames'])])
+        if length == 0:
+            rospy.logwarn("No sequence found at {} index {}".format(self.KITTI360_raw_dir, self.index))
+            return
+        self.sequence_index = (self.sequence_index) % length
+
         P0 = meta_dict["calib"]["P0"]
         P1 = meta_dict["calib"]["P1"]
         R0_rect = meta_dict["calib"]["T_rect02cam0"]
@@ -82,21 +89,17 @@ class Kitti360VisualizeNode:
         if self.pause: # if paused, all data will freeze
             return
 
-        length = min([len(meta_dict['key_frames'])])
-
-        if length == 0:
-            rospy.logwarn("No sequence found at {} index {}".format(self.KITTI360_raw_dir, self.index))
-            return
-        self.sequence_index = (self.sequence_index) % length
         
         frame_idx = meta_dict['key_frames'][self.sequence_index]
-        left_image = cv2.imread(meta_dict["left_image"][frame_idx])
-        ros_util.publish_image(left_image, self.left_image_publish, self.left_camera_info, P0, "left_camera")
-        right_image = cv2.imread(meta_dict["right_image"][frame_idx])
-        ros_util.publish_image(right_image, self.right_image_publish, self.right_camera_info, P1, "right_camera")
+        if meta_dict['left_image'] is not None:
+            left_image = cv2.imread(meta_dict["left_image"][frame_idx])
+            ros_util.publish_image(left_image, self.left_image_publish, self.left_camera_info, P0, "left_camera")
+        if meta_dict['right_image'] is not None:
+            right_image = cv2.imread(meta_dict["right_image"][frame_idx])
+            ros_util.publish_image(right_image, self.right_image_publish, self.right_camera_info, P1, "right_camera")
 
         point_cloud = np.fromfile(meta_dict["lidar"][frame_idx], dtype=np.float32).reshape(-1, 4)
-        point_cloud = point_cloud[point_cloud[:, 0] > np.abs(point_cloud[:, 1]) * 0.2 ]
+        #point_cloud = point_cloud[point_cloud[:, 0] > np.abs(point_cloud[:, 1]) * 0.2 ]
         ros_util.publish_point_cloud(point_cloud, self.lidar_publisher, "lidar")
         
         self.sequence_index += 1

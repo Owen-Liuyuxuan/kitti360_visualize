@@ -1,10 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import os
 import numpy as np
 import rospy
 from visualization_msgs.msg import Marker
 import scipy.io as sio
-from constants import KITTI_COLORS, KITTI_NAMES
+from .constants import KITTI_COLORS, KITTI_NAMES
 
 def color_pointcloud(pts, image, T, P2):
     hfiller = np.expand_dims(np.ones(pts.shape[0]), axis=1)
@@ -190,19 +190,28 @@ def get_files(base_dir, index):
     output_dict["calib"]["cam_to_pose"] = T_cam2pose
 
     left_dir = os.path.join(data_2d_raw_dir, sequence_name, "image_00", "data_rect")
-    left_images = os.listdir(left_dir)
-    left_images.sort()
-    left_images = [os.path.join(left_dir, left_image) for left_image in left_images]
+    if not os.path.isdir(left_dir):
+        left_images = None
+    else:
+        left_images = os.listdir(left_dir)
+        left_images.sort()
+        left_images = [os.path.join(left_dir, left_image) for left_image in left_images]
 
     right_dir = os.path.join(data_2d_raw_dir, sequence_name, "image_01", "data_rect")
-    right_images= os.listdir(right_dir)
-    right_images.sort()
-    right_images = [os.path.join(right_dir, right_image) for right_image in right_images]
+    if not os.path.isdir(right_dir):
+        right_images = None
+    else:
+        right_images= os.listdir(right_dir)
+        right_images.sort()
+        right_images = [os.path.join(right_dir, right_image) for right_image in right_images]
 
     pc_dir = os.path.join(data_3d_raw_dir, sequence_name, "velodyne_points", "data")
-    pointclouds = os.listdir(pc_dir)
-    pointclouds.sort()
-    pointclouds = [os.path.join(pc_dir, pc) for pc in pointclouds]
+    if not os.path.isdir(pc_dir):
+        pointclouds = None
+    else:
+        pointclouds = os.listdir(pc_dir)
+        pointclouds.sort()
+        pointclouds = [os.path.join(pc_dir, pc) for pc in pointclouds]
 
     poses_file = os.path.join(data_pose_dir, sequence_name, 'poses.txt') # pose mat can be generated with official matlab toolkits
     key_frames, poses = read_poses_file(poses_file)

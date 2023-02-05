@@ -20,15 +20,15 @@ Clone the repo under the {workspace}/src/ folder. Overwrite the folder names in 
 
 ```bash
 cd catkin_ws/src
-git clone https://github.com/Owen-Liuyuxuan/kitti_visualize
+git clone https://github.com/Owen-Liuyuxuan/kitti360_visualize
 cd ..
 source devel/setup.bash # devel/setup.zsh or devel/setup.sh for your own need.
 
 # modify and check the data path!! Also control the publishing frequency of the data stream.
-nano src/kitti_visualize/launch/visualize_launch.launch 
+nano src/kitti360_visualize/launch/visualize_launch.launch 
 
 # this will launch the data publisher / rviz / GUI controller
-roslaunch kitti_visualize visualize_launch.launch 
+roslaunch kitti360_visualize visualize_launch.launch 
 ```
 
 

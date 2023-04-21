@@ -174,6 +174,46 @@ def publish_image(image, image_publisher, camera_info_publisher, P, frame_id):
 
     camera_info_publisher.publish(camera_info_msg)
 
+def publish_fisheye_image(image, image_publisher, camera_info_publisher, fisheye_calib, frame_id):
+    """Publish image and info message to ROS. Notice that KITTI360 MEI model is not compatible with OpenCV model, so just a trial.
+
+    Args:
+        image: numpy.ndArray.
+        image_publisher: rospy.Publisher
+        camera_info_publisher: rospy.Publisher, should publish CameraInfo
+        P: projection matrix [3, 4]. though only [3, 3] is useful.
+        frame_id: string, parent frame name.
+    """
+    bridge = CvBridge()
+    image_msg = bridge.cv2_to_imgmsg(image, encoding="passthrough")
+    image_msg.header.frame_id = frame_id
+    image_msg.header.stamp = rospy.Time.now()
+    image_publisher.publish(image_msg)
+
+    camera_info_msg = CameraInfo()
+    camera_info_msg.header.frame_id = frame_id
+    camera_info_msg.header.stamp = rospy.Time.now()
+    camera_info_msg.distortion_model = "equidistant"
+    camera_info_msg.height = image.shape[0]
+    camera_info_msg.width = image.shape[1]
+    k1 = fisheye_calib["distortion_parameters"]['k1']
+    k2 = fisheye_calib["distortion_parameters"]['k2']
+    camera_info_msg.D = [k1, k2, 0, 0]
+    gamma1 = fisheye_calib["projection_parameters"]['gamma1'] / np.pi
+    gamma2 = fisheye_calib["projection_parameters"]['gamma2'] / np.pi
+    u0 = fisheye_calib["projection_parameters"]['u0']
+    v0 = fisheye_calib["projection_parameters"]['v0']
+    K = np.array([[gamma1, 0, u0], [0, gamma2, v0], [0, 0, 1]])
+    camera_info_msg.K = np.reshape(K, (-1)).tolist()
+
+    P_no_translation = np.zeros([3, 4])
+    P_no_translation[0:3, 0:3] = K[0:3, 0:3]
+
+    camera_info_msg.P = np.reshape(P_no_translation, (-1)).tolist()
+
+    camera_info_publisher.publish(camera_info_msg)
+
+
 def array2pc2(points, parent_frame, field_names='xyza'):
     """ Creates a point cloud message.
     Args:

@@ -4,6 +4,7 @@ import numpy as np
 import rospy
 from visualization_msgs.msg import Marker
 import scipy.io as sio
+import yaml
 from .constants import KITTI_COLORS, KITTI_NAMES
 
 def color_pointcloud(pts, image, T, P2):
@@ -62,6 +63,12 @@ def read_labels(file):
                 )
     return objects
 
+def read_fisheycalib(file):
+    with open(file, 'r') as f:
+        f.readline() #[The first line is not useful and contain not standard yaml]
+        calib = yaml.safe_load(f)
+    return calib
+
 def read_T_from_sequence(file):
     """ read T from a sequence file calib_cam_to_velo.txt
     """
@@ -107,6 +114,8 @@ def read_extrinsic_from_sequence(file):
 
     T0 = np.eye(4)
     T1 = np.eye(4)
+    T2 = np.eye(4)
+    T3 = np.eye(4)
     with open(file, 'r') as f:
         for line in f.readlines():
             if line.startswith("image_00"):
@@ -117,10 +126,17 @@ def read_extrinsic_from_sequence(file):
                 data = line.strip().split(" ")
                 T = np.array([float(x) for x in data[1:13]])
                 T1[0:3, :] = np.reshape(T, [3, 4])
-    
+            if line.startswith("image_02"):
+                data = line.strip().split(" ")
+                T = np.array([float(x) for x in data[1:13]])
+                T2[0:3, :] = np.reshape(T, [3, 4])
+            if line.startswith("image_03"):
+                data = line.strip().split(" ")
+                T = np.array([float(x) for x in data[1:13]])
+                T3[0:3, :] = np.reshape(T, [3, 4])
 
     return dict(
-        T_image0=T0, T_image1=T1
+        T_image0=T0, T_image1=T1, T_image2=T2, T_image3=T3
     )
 
 def read_poses_file(file):
@@ -161,9 +177,13 @@ def get_files(base_dir, index):
             "P1":None,
             "T_cam2velo":None,
             "cam_to_pose":None,
+            "calib2":None,
+            "calib3":None,
         },
         "left_image":[],
         "right_image":[],
+        "fisheye2_image":[],
+        "fisheye3_image":[],
         "lidar": [],
         'key_frames': [],
         "poses":None,
@@ -178,12 +198,18 @@ def get_files(base_dir, index):
 
     cam_calib_file = os.path.join(calib_dir, "perspective.txt")
     P0, P1, R0, R1 = read_P01_from_sequence(cam_calib_file)
+    fisheye2_calib_file = os.path.join(calib_dir, "image_02.yaml")
+    calib_2 = read_fisheycalib(fisheye2_calib_file)
+    fisheye3_calib_file = os.path.join(calib_dir, "image_03.yaml")
+    calib_3 = read_fisheycalib(fisheye3_calib_file)
     velo_calib_file = os.path.join(calib_dir, "calib_cam_to_velo.txt")
     T_cam2velo = read_T_from_sequence(velo_calib_file)
     cam_extrinsic_file = os.path.join(calib_dir, "calib_cam_to_pose.txt")
     T_cam2pose = read_extrinsic_from_sequence(cam_extrinsic_file)
     output_dict["calib"]["P0"] = P0
     output_dict["calib"]["P1"] = P1
+    output_dict["calib"]["calib2"] = calib_2
+    output_dict["calib"]["calib3"] = calib_3
     output_dict["calib"]["T_rect02cam0"] = R0
     output_dict["calib"]["T_rect12cam1"] = R1
     output_dict["calib"]["T_cam2velo"] = T_cam2velo
@@ -213,10 +239,30 @@ def get_files(base_dir, index):
         pointclouds.sort()
         pointclouds = [os.path.join(pc_dir, pc) for pc in pointclouds]
 
+
+    fisheye2_dir = os.path.join(data_2d_raw_dir, sequence_name, "image_02", "data_rgb")
+    if not os.path.isdir(fisheye2_dir):
+        fisheye2_images = None
+    else:
+        fisheye2_images = os.listdir(fisheye2_dir)
+        fisheye2_images.sort()
+        fisheye2_images = [os.path.join(fisheye2_dir, fisheye_image) for fisheye_image in fisheye2_images]
+
+    fisheye3_dir = os.path.join(data_2d_raw_dir, sequence_name, "image_03", "data_rgb")
+    if not os.path.isdir(fisheye3_dir):
+        fisheye3_images = None
+    else:
+        fisheye3_images = os.listdir(fisheye3_dir)
+        fisheye3_images.sort()
+        fisheye3_images = [os.path.join(fisheye3_dir, fisheye_image) for fisheye_image in fisheye3_images]
+
     poses_file = os.path.join(data_pose_dir, sequence_name, 'poses.txt') # pose mat can be generated with official matlab toolkits
     key_frames, poses = read_poses_file(poses_file)
 
     output_dict["left_image"] = left_images
+    output_dict["right_image"] = right_images
+    output_dict["fisheye2_image"] = fisheye2_images
+    output_dict["fisheye3_image"] = fisheye3_images
     output_dict["right_image"] = right_images
     output_dict["lidar"] = pointclouds
     output_dict["poses"] = poses

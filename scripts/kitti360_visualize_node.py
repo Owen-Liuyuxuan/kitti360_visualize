@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import numpy as np
-import rospy 
+import rospy
 import cv2
 from utils import kitti360_utils, ros_util
 from sensor_msgs.msg import CameraInfo, Image, PointCloud2
@@ -16,12 +16,16 @@ class Kitti360VisualizeNode:
 
         self.left_image_publish  = rospy.Publisher("/kitti360/left_camera/image", Image, queue_size=1, latch=True)
         self.right_image_publish = rospy.Publisher("/kitti360/right_camera/image", Image, queue_size=1, latch=True)
+        self.left_fisheye_image_publish  = rospy.Publisher("/kitti360/left_fisheye_camera/image", Image, queue_size=1, latch=True)
+        self.right_fisheye_image_publish = rospy.Publisher("/kitti360/right_fisheye_camera/image", Image, queue_size=1, latch=True)
         self.left_camera_info    = rospy.Publisher("/kitti360/left_camera/camera_info", CameraInfo, queue_size=1, latch=True)
         self.right_camera_info   = rospy.Publisher("/kitti360/right_camera/camera_info", CameraInfo, queue_size=1, latch=True)
+        self.left_fisheye_camera_info    = rospy.Publisher("/kitti360/left_fisheye_camera/camera_info", CameraInfo, queue_size=1, latch=True)
+        self.right_fisheye_camera_info   = rospy.Publisher("/kitti360/right_fisheye_camera/camera_info", CameraInfo, queue_size=1, latch=True)
         # self.bbox_publish        = rospy.Publisher("/kitti360/bboxes", MarkerArray, queue_size=1, latch=True)
         self.lidar_publisher     = rospy.Publisher("/kitti360/lidar", PointCloud2, queue_size=1, latch=True)
         # self.image_pc_publisher  = rospy.Publisher("/kitti360/left_camera_pc", PointCloud2, queue_size=1, latch=True)
-        
+
         self.KITTI360_raw_dir = rospy.get_param("~KITTI360_RAW_DIR", None)
         self.image_pc_depth  = float(rospy.get_param("~Image_PointCloud_Depth", 5))
         self.update_frequency= float(rospy.get_param("~UPDATE_FREQUENCY", 8))
@@ -47,7 +51,7 @@ class Kitti360VisualizeNode:
         self.publish_callback(None)
 
     def pause_callback(self, msg):
-        self.pause = msg.data      
+        self.pause = msg.data
         self.published=False
 
     def index_callback(self, msg):
@@ -55,11 +59,11 @@ class Kitti360VisualizeNode:
         self.sequence_index = 0
         self.meta_dict = kitti360_utils.get_files(self.KITTI360_raw_dir, self.index)
         self.publish_callback(None)
-        
+
     def publish_callback(self, event):
         if self.stop: # if stopped, falls back to an empty loop
             return
-        
+
         meta_dict = self.meta_dict
         if meta_dict is None:
             rospy.logwarn("meta_dict from kitti360_utils.get_files is None, current_arguments {}"\
@@ -84,6 +88,9 @@ class Kitti360VisualizeNode:
         ros_util.publish_transformation(R0_rect,  'left_camera', 'left_rect')
         ros_util.publish_transformation(T_image1, 'base_link', 'right_camera')
         ros_util.publish_transformation(R1_rect,  'right_camera', 'right_rect')
+        ros_util.publish_transformation(meta_dict["calib"]["cam_to_pose"]["T_image2"], 'base_link', 'left_fisheye_camera')
+        ros_util.publish_transformation(meta_dict["calib"]["cam_to_pose"]["T_image3"], 'base_link', 'right_fisheye_camera')
+
         ros_util.publish_transformation(meta_dict["poses"][self.sequence_index], "odom", "base_link")
 
         if self.pause: # if paused, all data will freeze
@@ -97,6 +104,16 @@ class Kitti360VisualizeNode:
         if meta_dict['right_image'] is not None:
             right_image = cv2.imread(meta_dict["right_image"][frame_idx])
             ros_util.publish_image(right_image, self.right_image_publish, self.right_camera_info, P1, "right_camera")
+
+        if meta_dict['fisheye2_image'] is not None:
+            fisheye2_image = cv2.imread(meta_dict["fisheye2_image"][frame_idx])
+            ros_util.publish_fisheye_image(fisheye2_image, self.left_fisheye_image_publish,
+                                            self.left_fisheye_camera_info, meta_dict["calib"]['calib2'], "left_fisheye_camera")
+
+        if meta_dict['fisheye3_image'] is not None:
+            fisheye3_image = cv2.imread(meta_dict["fisheye3_image"][frame_idx])
+            ros_util.publish_fisheye_image(fisheye3_image, self.right_fisheye_image_publish,
+                                            self.right_fisheye_camera_info, meta_dict["calib"]['calib3'], "right_fisheye_camera")
 
         point_cloud = np.fromfile(meta_dict["lidar"][frame_idx], dtype=np.float32).reshape(-1, 4)
         #point_cloud = point_cloud[point_cloud[:, 0] > np.abs(point_cloud[:, 1]) * 0.2 ]
